@@ -103,6 +103,19 @@ defmodule Timber.ErrorLogger do
     {:ok, state}
   end
 
+  # Handling (probably) Plug w/ Cowboy's specific error system
+  #
+  # Other data formats may fit this pattern
+  def handle_event({:error, _gl, {_process, _msg_fmt, [_ref, _protocol, _pid, {{error, stacktrace}, {_mod, _fun, [%{__struct__: Plug.Conn} = conn, _]}}]}}, state) do
+    http_context = Timber.PlugUtils.http_context(conn, [])
+    context = Timber.Context.add_context(%{}, http_context)
+
+    event = ExceptionEvent.new(error, stacktrace)
+
+    Logger.error(event.description, [timber_context: context, timber_event: event])
+    {:ok, state}
+  end
+
   def handle_event(_event, state) do
     {:ok, state}
   end

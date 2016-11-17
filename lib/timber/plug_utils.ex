@@ -1,4 +1,6 @@
 defmodule Timber.PlugUtils do
+  alias Timber.Contexts.HTTPContext
+
   @doc """
   Fetches the request ID from the connection using the given header name
 
@@ -52,5 +54,22 @@ defmodule Timber.PlugUtils do
     remote_ip
     |> :inet.ntoa()
     |> List.to_string()
+  end
+
+  def http_context(%Plug.Conn{method: method, request_path: request_path} = conn, opts) do
+    request_id_header = Keyword.get(opts, :request_id_header, "x-request-id")
+    remote_addr = get_client_ip(conn)
+    request_id =
+      case get_request_id(conn, request_id_header) do
+        [{_, request_id}] -> request_id
+        [] -> nil
+      end
+
+    %HTTPContext{
+      method: method,
+      path: request_path,
+      request_id: request_id,
+      remote_addr: remote_addr
+    }
   end
 end
